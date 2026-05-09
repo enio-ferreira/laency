@@ -21,4 +21,4 @@ jobs:
           username: u160500581
           password: ${{ secrets.SSH_PASSWORD }}
           source: "index.html"
-          target: "/home/u160500581/domains/app.uselaency.com/public_html/"
+          target: "/home/u160500581/public_html/applaency/"
