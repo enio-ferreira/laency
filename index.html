@@ -7097,10 +7097,22 @@ async function verificarAtualizacaoGithub() {
     }
 
     if (novaVersao === versaoAtual) {
+      statusEl.style.display = '';
+      statusEl.style.background = '#E6F4EE';
+      statusEl.style.color = '#2E7D5B';
+      statusEl.style.padding = '12px 14px';
+      statusEl.style.borderRadius = '8px';
+      statusEl.style.fontWeight = '600';
       statusEl.textContent = '✅ Você já está na versão mais recente (' + versaoAtual + ')';
       document.getElementById('github-atualizado').style.display = '';
       document.getElementById('github-nova-versao').style.display = 'none';
     } else {
+      statusEl.style.display = '';
+      statusEl.style.background = '#EBF8FF';
+      statusEl.style.color = '#2C5282';
+      statusEl.style.padding = '12px 14px';
+      statusEl.style.borderRadius = '8px';
+      statusEl.style.fontWeight = '600';
       statusEl.textContent = '🆕 Nova versão disponível: ' + novaVersao + ' (atual: ' + versaoAtual + ')';
       document.getElementById('github-nova-versao').style.display = '';
       document.getElementById('github-versao-nova').textContent = novaVersao;
@@ -7111,6 +7123,11 @@ async function verificarAtualizacaoGithub() {
       window._githubNovoHtml = html;
     }
   } catch(e) {
+    statusEl.style.display = '';
+    statusEl.style.background = '#FAEAE8';
+    statusEl.style.color = '#C0392B';
+    statusEl.style.padding = '12px 14px';
+    statusEl.style.borderRadius = '8px';
     statusEl.textContent = '❌ Erro ao verificar: ' + e.message;
   }
 }
