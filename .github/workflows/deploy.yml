@@ -1,0 +1,24 @@
+name: Deploy para Hostinger
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar repositório
+        uses: actions/checkout@v3
+
+      - name: Enviar index.html via SSH
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: 212.85.6.68
+          port: 65002
+          username: u160500581
+          password: ${{ secrets.SSH_PASSWORD }}
+          source: "index.html"
+          target: "/home/u160500581/domains/app.uselaency.com/public_html/"
