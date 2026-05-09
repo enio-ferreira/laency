@@ -1342,7 +1342,7 @@ const QRCode = (() => {
         <div class="kpi-card"><div class="kpi-accent"></div>
           <div class="kpi-label">Vendas no Mês</div>
           <div class="kpi-value" id="kpi-mes">R$ 80</div>
-          <div class="kpi-sub">1 venda · março 2026</div>
+          <div class="kpi-sub" id="kpi-mes-sub">0 vendas · carregando...</div>
         </div>
         <div class="kpi-card"><div class="kpi-accent"></div>
           <div class="kpi-label">Em Consignação</div>
@@ -1365,7 +1365,7 @@ const QRCode = (() => {
         <div>
           <div class="card">
             <div class="card-header">
-              <span class="card-title">Ranking de Revendedoras — Março</span>
+              <span class="card-title" id="rank-titulo">Ranking de Revendedoras</span>
               <span style="font-size:11px;color:var(--gray-400);letter-spacing:1px">2026</span>
             </div>
             <div style="padding:16px 20px">
@@ -3222,7 +3222,26 @@ function closeModal(id) {
 //  DASHBOARD
 // ══════════════════════════
 function renderDash() {
-  const totalMes = D.vendas.reduce((s,v)=>s+v.valor,0);
+  // Filtrar vendas do mês/ano atual
+  const now = new Date();
+  const mesAtual = now.getMonth() + 1; // 1-12
+  const anoAtual = now.getFullYear();
+  const vendasMes = D.vendas.filter(v => {
+    if (!v.data) return false;
+    // data pode ser DD/MM/YYYY ou YYYY-MM-DD
+    let m, y;
+    if (v.data.includes('/')) {
+      const p = v.data.split('/');
+      m = parseInt(p[1]); y = parseInt(p[2]);
+    } else {
+      const p = v.data.split('-');
+      y = parseInt(p[0]); m = parseInt(p[1]);
+    }
+    return m === mesAtual && y === anoAtual;
+  });
+
+  const mesNome = now.toLocaleString('pt-BR', { month: 'long' });
+  const totalMes = vendasMes.reduce((s,v)=>s+v.valor,0);
   const cPosse = D.consignacoes.filter(c=>c.status==='posse').reduce((s,c)=>s+c.qtd,0);
   const pendente = D.consignacoes.filter(c=>c.status==='vendida').reduce((s,c)=>s+(getP(c.prod_id)?.venda||0)*c.qtd,0);
   document.getElementById('kpi-mes').textContent = fmt(totalMes);
@@ -3230,10 +3249,18 @@ function renderDash() {
   document.getElementById('kpi-revs').textContent = D.revendedoras.length;
   document.getElementById('kpi-receber').textContent = fmt(pendente);
 
-  // ranking
+  // Atualizar subtítulo KPI vendas no mês
+  const kpiSub = document.getElementById('kpi-mes-sub');
+  if (kpiSub) kpiSub.textContent = vendasMes.length + ' venda' + (vendasMes.length !== 1 ? 's' : '') + ' · ' + mesNome + ' ' + anoAtual;
+
+  // Atualizar título do ranking
+  const rankTitulo = document.getElementById('rank-titulo');
+  if (rankTitulo) rankTitulo.textContent = 'Ranking de Revendedoras — ' + mesNome.charAt(0).toUpperCase() + mesNome.slice(1);
+
+  // ranking — apenas vendas do mês atual
   const sales = {};
   D.revendedoras.forEach(r=>sales[r.id]=0);
-  D.vendas.forEach(v=>sales[v.rev_id]=(sales[v.rev_id]||0)+v.valor);
+  vendasMes.forEach(v=>sales[v.rev_id]=(sales[v.rev_id]||0)+v.valor);
   document.getElementById('top-tbody').innerHTML = D.revendedoras
     .sort((a,b)=>(sales[b.id]||0)-(sales[a.id]||0))
     .map((r,i)=>{
@@ -3253,7 +3280,7 @@ function renderDash() {
 
   // payments
   const pm = {};
-  D.vendas.forEach(v=>pm[v.pagamento]=(pm[v.pagamento]||0)+v.valor);
+  vendasMes.forEach(v=>pm[v.pagamento]=(pm[v.pagamento]||0)+v.valor);
   const icons = {PIX:'💚',Cartão:'💳',Dinheiro:'💵',Consignado:'📦'};
   document.getElementById('pay-breakdown').innerHTML = Object.entries(pm).map(([k,v])=>`
     <div class="pay-row"><span>${icons[k]||'💰'} ${k}</span><strong>${fmt(v)}</strong></div>
