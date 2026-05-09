@@ -7082,8 +7082,9 @@ async function verificarAtualizacaoGithub() {
   statusEl.textContent = '🔍 Verificando...';
 
   try {
-    // Buscar o arquivo e extrair versão
-    const resp = await fetch(url + '?t=' + Date.now());
+    // Usar proxy para evitar bloqueio CORS do GitHub
+    const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(url + '?t=' + Date.now());
+    const resp = await fetch(proxyUrl);
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const html = await resp.text();
 
