@@ -7075,63 +7075,79 @@ function salvarAppUrlModal() {
 
 async function verificarAtualizacaoGithub() {
   const url = document.getElementById('github-url').value.trim() || localStorage.getItem(GITHUB_URL_KEY);
-  if (!url) { showToast('⚠ Configure a URL do GitHub primeiro'); return; }
+  if (!url) { showToast('⚠ Cole a URL do GitHub e clique Salvar primeiro'); return; }
 
   const statusEl = document.getElementById('github-status');
   statusEl.style.display = '';
+  statusEl.style.background = '#F0EBF8';
+  statusEl.style.color = '#3D2A52';
+  statusEl.style.padding = '12px 14px';
+  statusEl.style.borderRadius = '8px';
+  statusEl.style.fontWeight = '400';
   statusEl.textContent = '🔍 Verificando...';
 
-  try {
-    // Usar proxy para evitar bloqueio CORS do GitHub
-    const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(url + '?t=' + Date.now());
-    const resp = await fetch(proxyUrl);
-    if (!resp.ok) throw new Error('HTTP ' + resp.status);
-    const html = await resp.text();
+  // Lista de proxies para tentar em ordem
+  const proxies = [
+    u => u,  // direto primeiro
+    u => 'https://corsproxy.io/?' + encodeURIComponent(u),
+    u => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u),
+    u => 'https://cors-anywhere.herokuapp.com/' + u,
+  ];
 
-    const match = html.match(/const APP_VERSION = ['"]([^'"]+)['"]/);
-    const novaVersao = match ? match[1] : null;
-    const versaoAtual = APP_VERSION;
+  let html = null;
+  let erro = null;
 
-    if (!novaVersao) {
-      statusEl.textContent = '⚠ Não foi possível identificar a versão no arquivo';
-      return;
+  for (const proxy of proxies) {
+    try {
+      const resp = await fetch(proxy(url + '?t=' + Date.now()), { cache: 'no-store' });
+      if (resp.ok) {
+        html = await resp.text();
+        break;
+      }
+    } catch(e) {
+      erro = e.message;
     }
+  }
 
-    if (novaVersao === versaoAtual) {
-      statusEl.style.display = '';
-      statusEl.style.background = '#E6F4EE';
-      statusEl.style.color = '#2E7D5B';
-      statusEl.style.padding = '12px 14px';
-      statusEl.style.borderRadius = '8px';
-      statusEl.style.fontWeight = '600';
-      statusEl.textContent = '✅ Você já está na versão mais recente (' + versaoAtual + ')';
-      document.getElementById('github-atualizado').style.display = '';
-      document.getElementById('github-nova-versao').style.display = 'none';
-    } else {
-      statusEl.style.display = '';
-      statusEl.style.background = '#EBF8FF';
-      statusEl.style.color = '#2C5282';
-      statusEl.style.padding = '12px 14px';
-      statusEl.style.borderRadius = '8px';
-      statusEl.style.fontWeight = '600';
-      statusEl.textContent = '🆕 Nova versão disponível: ' + novaVersao + ' (atual: ' + versaoAtual + ')';
-      document.getElementById('github-nova-versao').style.display = '';
-      document.getElementById('github-versao-nova').textContent = novaVersao;
-      document.getElementById('github-atualizado').style.display = 'none';
-      const btn = document.getElementById('btn-aplicar-update');
-      if (btn) btn.disabled = false;
-      // Guardar html para aplicar
-      window._githubNovoHtml = html;
-    }
-  } catch(e) {
-    statusEl.style.display = '';
+  if (!html) {
     statusEl.style.background = '#FAEAE8';
     statusEl.style.color = '#C0392B';
-    statusEl.style.padding = '12px 14px';
-    statusEl.style.borderRadius = '8px';
-    statusEl.textContent = '❌ Erro ao verificar: ' + e.message;
+    statusEl.textContent = '❌ Não foi possível acessar o GitHub. Verifique a URL e tente novamente.';
+    return;
+  }
+
+  const match = html.match(/const APP_VERSION = ['"]([^'"]+)['"]/);
+  const novaVersao = match ? match[1] : null;
+  const versaoAtual = APP_VERSION;
+
+  if (!novaVersao) {
+    statusEl.style.background = '#FAEAE8';
+    statusEl.style.color = '#C0392B';
+    statusEl.textContent = '❌ Arquivo encontrado mas versão não identificada';
+    return;
+  }
+
+  if (novaVersao === versaoAtual) {
+    statusEl.style.background = '#E6F4EE';
+    statusEl.style.color = '#2E7D5B';
+    statusEl.style.fontWeight = '600';
+    statusEl.textContent = '✅ Você já está na versão mais recente (' + versaoAtual + ')';
+    document.getElementById('github-atualizado').style.display = '';
+    document.getElementById('github-nova-versao').style.display = 'none';
+  } else {
+    statusEl.style.background = '#EBF8FF';
+    statusEl.style.color = '#2C5282';
+    statusEl.style.fontWeight = '600';
+    statusEl.textContent = '🆕 Nova versão disponível: ' + novaVersao + ' (atual: ' + versaoAtual + ')';
+    document.getElementById('github-nova-versao').style.display = '';
+    document.getElementById('github-versao-nova').textContent = novaVersao;
+    document.getElementById('github-atualizado').style.display = 'none';
+    const btn = document.getElementById('btn-aplicar-update');
+    if (btn) btn.disabled = false;
+    window._githubNovoHtml = html;
   }
 }
+
 
 async function aplicarAtualizacaoGithub() {
   if (!window._githubNovoHtml) {
